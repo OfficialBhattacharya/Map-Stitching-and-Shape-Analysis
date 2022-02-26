@@ -1,0 +1,332 @@
+linalg=function()
+   {
+    ##############################################
+    #####Installing required Packages#############
+    ##############################################
+    print("Let’s start by installing the required libraries.")
+    if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+    BiocManager::install("EBImage")
+    #########################################################
+    ##########My own locator which takes names###############
+    #########################################################
+    plot.locator<-function(item.to.plot, num.points)
+{
+
+   plot(item.to.plot)
+   xs.list<-c(NULL)
+   names.list<-c(NULL)
+   ys.list<-c(NULL)
+   for( I in 1:num.points)
+    {
+     message("Name this point,select next point")
+     #Enter Warning Message Here!
+     response <- readline(prompt="Enter name: ")
+     location<-locator(1,type="p", par(pch=16,col="blue"))
+     xs.list<-c(xs.list,location$’x’)
+     ys.list<-c(ys.list,location$’y’)
+     names.list<-c(names.list,response)
+    }
+   locations<-list(x=xs.list, y =ys.list, name =names.list)
+   return(locations)
+  }
+#########################################################
+############## Intersection Function ##################
+#########################################################
+set.intersection <- function(a, b)
+  {
+   intersect <- vector()
+   for (i in 1:length(a))
+    {
+     if (a[i] %in% b)
+       {
+        intersect <- append(intersect, a[i])
+} }
+   return(intersect)
+  }
+#########################################################
+##############Data Input in R with names#################
+#########################################################
+input<-function()
+  {
+   n = readline(prompt="How many pictures you want to merge?")
+   num.pictures = as.integer(n)
+   if(num.pictures < 1)
+    {
+     print("That was not expected.")
+    }
+   print("Save each picture in your working directory. Your working directory is--")
+   print(getwd())
+   print("Later you are supposed to enter the names of the images as saved, e.g,
+       image.png ")
+   k = readline(prompt="How many location points you have in total?")
+   num.locations = as.integer(k)
+   print("Make sure to name the locations as consecutive integers starting from 1.
+       One particular location must be named the same every time.")
+   X_matrix = matrix( ,nrow = num.pictures,ncol = num.locations)
+   Y_matrix = matrix( ,nrow = num.pictures,ncol = num.locations)
+
+
+   image<-matrix(,nrow= num.pictures,ncol = 1)
+   information1<-NULL
+   information2<-NULL
+   location.list=list()
+   for(i in 1:num.pictures)
+    {
+     image[i]<-readline(prompt="Enter the name of the image as saved in working
+         directory including the .png or .jpeg part.")
+     #Enter Warning Message Here!
+     image<-readImage(image[i])
+     plot(image)
+     num.points=readline(prompt ="Enter the number of points you want to
+         mark.Marking 0 is not going to help.")
+     #Enter Warning Message Here!
+     num.points=as.integer(num.points)
+     if(num.points <1)
+       {
+        print("That’s not an expected response. I am afraid you have to run the
+            function again. Press esc *~*")
+       }
+     info<-plot.locator(image,num.points)
+     location.list[[i]]=info$name
+     for(j in 1:(length(info$name)))
+       {
+        information1<-rbind(information1,c(info$x[j],info$name[j],i))
+        information2<-rbind(information2,c(info$y[j],info$name[j],i))
+        location<-as.integer(info$name[j])
+        X_matrix[i,location]=info$x[j]
+        Y_matrix[i,location]=info$y[j]
+} }
+   Information_List = list(information1,information2,X_matrix,Y_matrix,location.list)
+   return(Information_List)
+  }
+#########################################################
+############## Basic Homothety Shifts ###################
+#########################################################
+Homothety.func<-function(A)
+  {
+   X_matrix=A[[3]]
+   Y_matrix=A[[4]]
+   n=nrow(X_matrix)
+   beta=matrix(rep(1,times=n*n),nrow=n)
+   Basis_set=NULL
+   Residual_set=NULL
+   for(i in 2:n)
+    {
+     a=as.integer(A[[5]][[1]])
+     b=as.integer(A[[5]][[i]])
+     if(length(set.intersection(a,b))<2)
+       {
+        Residual_set=c(Residual_set,i)
+}
+else
+
+
+    {
+     Basis_set=c(Basis_set,i)
+     h1=NULL
+     h2=NULL
+     S=set.intersection(a,b)
+     count=0
+     for(l in S)
+{
+for(k in S)
+{ if(l<k)
+             {
+             h1<-c(h1,(((X_matrix[1,l])-(X_matrix[1,k]))^2 +
+                 (Y_matrix[1,l]-Y_matrix[1,k])^2)^(1/2))
+             h2=c(h2,(((X_matrix[i,l])-(X_matrix[i,k]))^2 +
+                 ((Y_matrix[i,l])-(Y_matrix[i,k]))^2)^(1/2))
+             }
+} }
+     beta[1,i]=mean(h2/h1)
+    }
+  }
+for(i in Basis_set)
+  {
+   for(j in Residual_set)
+    {
+     a=A[[5]][[i]]
+     b=A[[5]][[j]]
+     if(length(set.intersection(a,b))<2)
+       {
+        beta[i,j]=1
+        #Enter Warning Message Here!
+}
+else
+       {
+        Basis_set=c(Basis_set,j)
+        Residual_set=Residual_set[which(Residual_set !=j)]
+        S = set.intersection(a,b)
+        S=as.integer(S)
+        h1<-NULL
+        h2<-NULL
+        h=NULL
+        count=0
+        for(l in S)
+{
+for(k in S)
+{ if(l<k)
+               {
+                h1<-c(h1,(((X_matrix[i,l])-(X_matrix[i,k]))^2 +
+                    (Y_matrix[i,l]-Y_matrix[i,k])^2)^(1/2))
+                h2=c(h2,(((X_matrix[j,l])-(X_matrix[j,k]))^2 +
+                    ((Y_matrix[j,l])-(Y_matrix[j,k]))^2)^(1/2))
+               }
+
+
+} }
+            beta[i,j]=mean(h2/h1)
+            beta[1,j]=beta[1,i]*beta[i,j]
+           }
+} }
+    connected_pic=factor(Basis_set)
+    connected=levels(connected_pic)
+    result=list()
+    result[[1]]=beta
+    result[[2]]=connected
+    return(result)
+   }
+  ##########################################################
+  ##################### Rotations ##########################
+  ##########################################################
+Rotations.func<-function(A)
+   {
+    X_matrix=A[[3]]
+    Y_matrix=A[[4]]
+    n=nrow(X_matrix)
+    beta2=matrix(rep(1,times=n*n),nrow=n)
+    Basis_set2=NULL
+    Residual_set2=NULL
+    for(i in 2:n)
+     {
+      a=as.integer(A[[5]][[1]])
+      b=as.integer(A[[5]][[i]])
+      if(length(set.intersection(a,b))<2)
+        {
+         Residual_set2=c(Residual_set2,i)
+}
+else
+        {
+         Basis_set2=c(Basis_set2,i)
+         h1=NULL
+         h2=NULL
+         S=set.intersection(a,b)
+         count=0
+         for(l in S)
+{
+for(k in S)
+{ if(l<k)
+                {
+                 h1<-c(h1,(180/pi)*(atan(((Y_matrix[1,l])-(Y_matrix[1,k]))/(((X_matrix[1,l])-(X_matri
+                 h2<-c(h2,(180/pi)*(atan(((Y_matrix[i,l])-(Y_matrix[i,k]))/(((X_matrix[i,l])-(X_matri
+} }
+           }
+         beta2[1,i]=mean(h2-h1)
+
+
+} }
+   for(i in Basis_set2)
+    {
+     for(j in Residual_set2)
+       {
+        a=A[[5]][[i]]
+        b=A[[5]][[j]]
+        if(length(set.intersection(a,b))<2)
+          {
+           beta2[i,j]=1
+           #Enter Warning Message Here!
+}
+else
+          {
+           Basis_set2=c(Basis_set2,j)
+           Residual_set2=Residual_set2[which(Residual_set2 !=j)]
+           S = set.intersection(a,b)
+           S=as.integer(S)
+           h1<-NULL
+           h2<-NULL
+           h=NULL
+           count=0
+           for(l in S)
+{
+for(k in S)
+{ if(l<k)
+                  {
+                   h1<-c(h1,(180/pi)*(atan(((Y_matrix[1,l])-(Y_matrix[1,k]))/(((X_matrix[1,l])-(X_ma
+                    h2<-c(h2,(180/pi)*(atan(((Y_matrix[i,l])-(Y_matrix[i,k]))/(((X_matrix[i,l])-(X_m
+                  }
+} }
+           beta2[i,j]=mean(h2/h1)
+           beta2[1,j]=beta2[1,i]*beta2[i,j]
+          }
+} }
+   connected_pic2=factor(Basis_set2)
+   connected2=levels(connected_pic2)
+   result=list()
+   result2[[1]]=beta2
+   result2[[2]]=connected2
+   return(result2)
+  }
+#########################################################
+############## Basic Parallel Shifts ####################
+#########################################################
+A<-input()
+result<-Homothety.func(A)
+beta=result[[1]]
+class(beta)="numeric"
+
+ X=A[[1]]
+ Y=A[[2]]
+ class(X)<-"numeric"
+ class(Y)<-"numeric"
+ n=nrow(X)
+ ##########################################################
+ ################## Adjusting Homothety ###################
+ ##########################################################
+ for(i in 1:n)
+   {
+    no.picture=X[i,3]
+    X[i,1]=X[i,1]/beta[1,no.picture]
+    Y[i,1]=Y[i,1]/beta[1,no.picture]
+   }
+##########################################################
+################### Adjusting Rotations ##################
+##########################################################
+ for(i in 1:n)
+   {
+no.picture=X[i,3]
+X[i,1]= X[i,1]cos(beta2[1,no.picture]) + Y[i,1]sin(beta2[1,no.picture]) Y[i,1]= -X[i,1]sin(beta2[1,no.picture]) + Y[i,1]cos(beta2[1,no.picture])
+   }
+ ##########################################################
+ ##########################################################
+ ##########################################################
+ location.f<-factor(X[,2])
+ picture.f<-factor(X[,3])
+ Xshift<-lm(X[,1]~location.f + picture.f -1)
+ Yshift<-lm(Y[,1]~location.f + picture.f -1)
+ Locations<-levels(location.f)
+ l=paste("location.f",Locations,sep="")
+ Pictures=levels(picture.f)
+ N=length(Locations)
+ u=coef(Xshift)[l]
+ class(u)<-"numeric"
+ v=coef(Yshift)[l]
+ class(v)<-"numeric"
+ v=rep(max(v)+5,times=N)-v
+ plot(u,v,asp=1)
+ text(u,v-5,Locations)
+ Xerror=coef(summary(Xshift))[1:N,2]
+ Yerror=coef(summary(Yshift))[1:N,2]
+ location.matrix=cbind(Locations,u,v,Xerror,Yerror)
+ if((max(Xerror)>10) | (max(Yerror)>10))
+   {
+    print("The fit is not good judging from the errors. There might have been mistakes
+       in marking the points.")
+   }
+ print("If there are some disconnected pictures they will be printed below- ")
+ print(result[[2]])
+ class(location.matrix)<-"numeric"
+ colnames(location.matrix)<-c("Locations","X-coordinates","Y-coordinates","Error.Xdirection","Error.Y
+
+return(as.matrix(location.matrix))
+   }
