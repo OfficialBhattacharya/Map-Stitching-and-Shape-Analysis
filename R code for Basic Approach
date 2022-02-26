@@ -1,0 +1,52 @@
+merge<-function() 2{
+ } }
+{
+ temp=((data[j,1]-data[k,1])ˆ2+(data[j,2]-
+     data[k,2])ˆ2)ˆ(1/2)
+ temp=log(temp)
+ name=paste(data[j,3],data[k,3],sep=",")
+ dist=rbind(dist,c(temp,name,i))
+}
+6
+43 44 45 46 47 48 49 50 51 52 53
+54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80
+81 82 83
+} a=dist[,1]
+     class(a)="numeric"
+     b=factor(dist[,2])
+     c=factor(dist[,3])
+     resize=lm(a ̃b+c-1)
+     name=paste("c",1:S,sep="")
+     scale=coef(resize)[name]
+     if(length(which(is.na(scale)==TRUE))>1)
+        {
+         print("The scales cannot be determined for certain
+             pictures. Please try again.")
+     scale=exp(scale)
+#########################
+###########################
+     n=nrow(data)
+     for(i in 1:n)
+        {
+         if(data[,4]!=1)
+            {
+             pic=data[i,4]
+             data[i,1]=data[i,1]/scale[pic]
+} }
+     points=factor(data[,3])
+     screenshots=factor(data[,4])
+     fit.x=lm(data[,1] ̃points+screenshots-1)
+     name=paste("points",1:P,sep="")
+     name2=paste("screenshots",1:P,sep="")
+     xcoord=coef(fit.x)[name]
+     fit.y=lm(data[,2] ̃points+screenshots-1)
+     ycoord=coef(fit.y)[name]
+     plot(xcoord,ycoord)
+     t=levels(points)
+     text(xcoord,ycoord-5,t)
+     print("The max error in both coordinates are--")
+     print(c(max(abs(fit.x$residuals)),max(abs(fit.x$residuals)
+         )))
+     result=cbind(xcoord,ycoord)
+     return(as.matrix(result))
+}
